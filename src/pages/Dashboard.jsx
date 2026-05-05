@@ -1,28 +1,58 @@
 import { useEffect, useState } from "react";
 import { FaLeaf, FaUsers, FaBoxOpen, FaChartLine } from "react-icons/fa";
-import axios from "axios";
+import { api } from "../api";
+import { toast } from "sonner";
 
 function Dashboard() {
  
   const [plants, setPlants] = useState([]);
+  const [totalPlants, setTotalPlants] = useState(0);
+  const [estimatedCount, setEstimatedCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+
   const stats = [
     {
       title: "Total Plants",
-      value: "156",
+      value: totalPlants.toString(),
       icon: FaLeaf,
       color: "bg-green-100 text-green-600",
     },
     {
       title: "Estimated Counts",
-      value: "1,234",
+      value: estimatedCount.toLocaleString(),
       icon: FaUsers,
       color: "bg-blue-100 text-blue-600",
     }
   ];
 
-
   useEffect(() => {
-    // TODO fetch plants data from server
+    const fetchPlantsData = async () => {
+      try {
+        setIsLoading(true);
+        // Fetch all plants from the server
+        const response = await api.get('plants');
+        const allPlants = Array.isArray(response.data) ? response.data : response.data?.records || [];
+        
+        // Set total plants count
+        setTotalPlants(allPlants.length);
+        
+        // Calculate estimated count (sum of seedling counts)
+        const totalEstimated = allPlants.reduce((sum, plant) => {
+          return sum + (parseInt(plant.seedling_count) || 0);
+        }, 0);
+        setEstimatedCount(totalEstimated);
+        
+        // Display only recent plants (first 5)
+        setPlants(allPlants.slice(0, 5));
+      } catch (error) {
+        console.error('Error fetching plants:', error);
+        toast.error('Error loading plants data');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPlantsData();
   }, []);
 
   return (

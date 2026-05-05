@@ -7,7 +7,6 @@ import { api } from '../api';
 import { toast } from 'sonner';
 
 function Records() {
-  //TODO: add loading icon while ongoing ang loading ng records.
   const [records, setRecords] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -21,8 +20,24 @@ function Records() {
   const observerTarget = useRef(null);
   const isInInitialMount = useRef(true);
 
-  const handleSearchPlants = async () => {
-    // TODO search from the the backend; in case that all records is not yet loaded
+  const handleSearchPlants = async (query) => {
+    try {
+      setIsLoading(true);
+      
+      if (query.trim()) {
+        // Search from backend when query is not empty
+        const response = await api.get(`plants/search?q=${encodeURIComponent(query)}`);
+        setRecords(response.data || []);
+      } else {
+        // Load initial records when search is cleared
+        await handleLoadRecords(1, false);
+      }
+    } catch (error) {
+      console.error('Error searching plants:', error);
+      toast.error('Error searching records');
+    } finally {
+      setIsLoading(false);
+    }
   }
   const handleLoadRecords = async (page = 1, append = false) => {
     try {
@@ -33,9 +48,11 @@ function Records() {
         setIsLoadingMore(true);
       }
 
-      // Fetch paginated data from API
-      const response = await api.get(`plants?page=${page}`);
-      const { data: newRecords = [], current_page, last_page } = response.data || {};
+      // Fetch paginated data from the database
+      const response = await api.get(`plants?page=${page}&limit=10`);
+      
+      // Handle response - could be array or object with data property
+      const newRecords = Array.isArray(response.data) ? response.data : response.data?.records || [];
 
       // Update records state
       if (append) {
@@ -44,10 +61,10 @@ function Records() {
         setRecords(newRecords);
       }
 
-      // Determine if there are more pages to load
-      // Check if current_page exists and is less than last_page, or if we got records on this page
-      const hasMorePages = current_page && last_page ? current_page < last_page : newRecords.length > 0;
-      setHasMore(hasMorePages);
+      // Check if there are more records to load based on the number of records returned
+      // If less than limit, we've reached the end
+      const pageLimit = 10;
+      setHasMore(newRecords.length >= pageLimit);
     } catch (error) {
       console.error('Error loading records:', error);
       toast.error('Error loading records');
@@ -63,11 +80,11 @@ function Records() {
   }
   const handleAddRecord = async (formData) => {
     try {
+      // Make API call to add new record
       const response = await api.post('plants', formData);
-      const newRecord = response.data;
       
-      // Add the new record to the beginning of the records list
-      setRecords(prev => [newRecord, ...prev]);
+      // Add new record to the state
+      setRecords(prev => [response.data, ...prev]);
       
       toast.success("New record saved.");
     } catch (error) {
@@ -79,12 +96,12 @@ function Records() {
   }
   const handleUpdateRecord = async (data) => {
     try {
+      // Make API call to update record
       const response = await api.put(`plants/${data.id}`, data);
-      const updatedRecord = response.data;
       
-      // Update the record in the records list
+      // Update record in state
       setRecords(prev => prev.map(record => 
-        record.id === data.id ? updatedRecord : record
+        record.id === data.id ? response.data : record
       ));
       
       toast.success("Plant data updated.");
@@ -111,11 +128,7 @@ function Records() {
       toast.error(error?.message || "Error encountered while deleting record.");
     }
   }
-  const filteredRecords = records.filter(record =>
-    record.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    record.variety?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    record.seedling_source?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredRecords = records;
   const loadMore = useCallback(() => {
     if (!isLoadingMore && hasMore && !searchTerm) {
       const nextPage = currentPage + 1;
@@ -161,6 +174,8 @@ function Records() {
     if (searchTerm) {
       setCurrentPage(1);
       setHasMore(false);
+      // Search from backend when search term is entered
+      handleSearchPlants(searchTerm);
     } else {
       setCurrentPage(1);
       setHasMore(true);
