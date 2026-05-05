@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api'
+import { toast } from 'sonner'
 
 function Login() {
   const navigate = useNavigate()
@@ -9,6 +10,7 @@ function Login() {
     password: '',
     rememberMe: false
   })
+  const [isLoading, setIsLoading] = useState(false)
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -20,8 +22,38 @@ function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    //TODO make the login process functional
-
+    try {
+      setIsLoading(true)
+      
+      const response = await api.post('login', {
+        email: formData.email,
+        password: formData.password
+      })
+      
+      // Store the authentication token
+      const { token } = response.data
+      if (token) {
+        localStorage.setItem('token', token)
+        
+        // Optional: store remember me preference
+        if (formData.rememberMe) {
+          localStorage.setItem('rememberEmail', formData.email)
+        } else {
+          localStorage.removeItem('rememberEmail')
+        }
+        
+        toast.success('Login successful!')
+        navigate('/dashboard')
+      } else {
+        toast.error('Invalid response from server')
+      }
+    } catch (error) {
+      console.error('Login error:', error)
+      const errorMessage = error?.message || 'Login failed. Please try again.'
+      toast.error(errorMessage)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -84,14 +116,15 @@ function Login() {
             </div>
 
             {/* Submit Button */}
-            {/* TODO disable and show loading icon while logging in. */}
             <button
               type="submit"
+              disabled={isLoading}
               className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold 
                             hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 
-                            focus:ring-offset-2 transition duration-200 shadow-md"
+                            focus:ring-offset-2 transition duration-200 shadow-md disabled:opacity-60 
+                            disabled:cursor-not-allowed disabled:hover:bg-green-600"
             >
-              Sign In
+              {isLoading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
 
@@ -106,12 +139,13 @@ function Login() {
           </div>
 
           {/* Sign Up Link */}
-          {/* TODO disable sign up link while logging in */}
           <p className="mt-6 text-center text-sm text-gray-600">
             Don't have an account?{' '}
             <button
               onClick={() => navigate('/signup')}
-              className="cursor-pointer text-green-600 hover:text-green-700 font-semibold">
+              disabled={isLoading}
+              className="cursor-pointer text-green-600 hover:text-green-700 font-semibold 
+                disabled:opacity-60 disabled:cursor-not-allowed transition">
               Sign up for free
             </button>
           </p>

@@ -63,22 +63,34 @@ function Records() {
   }
   const handleAddRecord = async (formData) => {
     try {
-      //TODO: make add new record functional
+      const response = await api.post('plants', formData);
+      const newRecord = response.data;
+      
+      // Add the new record to the beginning of the records list
+      setRecords(prev => [newRecord, ...prev]);
+      
       toast.success("New record saved.");
     } catch (error) {
       console.error(error);
-      toast.error("Error encountered while saving record.");
+      toast.error(error?.message || "Error encountered while saving record.");
+    } finally {
+      setIsModalOpen(false);
     }
-
-    setIsModalOpen(false)
   }
   const handleUpdateRecord = async (data) => {
     try {
-      //TODO make update record functional
+      const response = await api.put(`plants/${data.id}`, data);
+      const updatedRecord = response.data;
+      
+      // Update the record in the records list
+      setRecords(prev => prev.map(record => 
+        record.id === data.id ? updatedRecord : record
+      ));
+      
       toast.success("Plant data updated.");
     } catch (error) {
       console.error(error);
-      toast.error("Error encountered during update.");
+      toast.error(error?.message || "Error encountered during update.");
     } finally {
       setIsEditRecord(false);
     }
@@ -87,13 +99,16 @@ function Records() {
     try {
       const isDelete = confirm("Are you sure you want to delete this record?");
       if (isDelete) {
-        await api.delete(`plants/${data.id}`, data);
-        setRecords(prev => prev?.filter( val => data.id !== val.id))
+        await api.delete(`plants/${data.id}`);
+        
+        // Remove the deleted record from the records list
+        setRecords(prev => prev.filter(record => record.id !== data.id));
+        
         toast.success("Plant data deleted.");
       }
     } catch (error) {
-      console.error(error)
-      toast.error("Error encountered while deleting record.");
+      console.error(error);
+      toast.error(error?.message || "Error encountered while deleting record.");
     }
   }
   const filteredRecords = records.filter(record =>
@@ -276,6 +291,46 @@ function Records() {
         {!hasMore && records.length > 0 && !searchTerm && (
           <div className="text-center py-4 text-gray-400 text-sm border-t border-gray-100">
             No more records to load
+          </div>
+        )}
+
+        {/* Pagination Controls */}
+        {records.length > 0 && !searchTerm && (
+          <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-gray-50">
+            <div className="text-sm text-gray-600">
+              Page <span className="font-semibold">{currentPage}</span>
+              {hasMore && <span> (more pages available)</span>}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  if (currentPage > 1) {
+                    const prevPage = currentPage - 1;
+                    setCurrentPage(prevPage);
+                    handleLoadRecords(prevPage, false);
+                  }
+                }}
+                disabled={currentPage === 1}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 
+                  bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => {
+                  if (hasMore) {
+                    const nextPage = currentPage + 1;
+                    setCurrentPage(nextPage);
+                    handleLoadRecords(nextPage, false);
+                  }
+                }}
+                disabled={!hasMore || isLoading}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 
+                  bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                Next
+              </button>
+            </div>
           </div>
         )}
       </div>
