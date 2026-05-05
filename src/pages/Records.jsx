@@ -21,8 +21,24 @@ function Records() {
   const observerTarget = useRef(null);
   const isInInitialMount = useRef(true);
 
-  const handleSearchPlants = async () => {
-    // TODO search from the the backend; in case that all records is not yet loaded
+  const handleSearchPlants = async (query) => {
+    try {
+      setIsLoading(true);
+      
+      if (query.trim()) {
+        // Search from backend when query is not empty
+        const response = await api.get(`plants/search?q=${encodeURIComponent(query)}`);
+        setRecords(response.data || []);
+      } else {
+        // Load initial records when search is cleared
+        await handleLoadRecords(1, false);
+      }
+    } catch (error) {
+      console.error('Error searching plants:', error);
+      toast.error('Error searching records');
+    } finally {
+      setIsLoading(false);
+    }
   }
   const handleLoadRecords = async (page = 1, append = false) => {
     //TODO: load the data from the database
@@ -107,11 +123,7 @@ function Records() {
       toast.error("Error encountered while deleting record.");
     }
   }
-  const filteredRecords = records.filter(record =>
-    record.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    record.variety?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    record.seedling_source?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredRecords = records;
   const loadMore = useCallback(() => {
     if (!isLoadingMore && hasMore && !searchTerm) {
       const nextPage = currentPage + 1;
@@ -157,6 +169,8 @@ function Records() {
     if (searchTerm) {
       setCurrentPage(1);
       setHasMore(false);
+      // Search from backend when search term is entered
+      handleSearchPlants(searchTerm);
     } else {
       setCurrentPage(1);
       setHasMore(true);
