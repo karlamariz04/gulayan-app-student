@@ -25,8 +25,6 @@ function Records() {
     // TODO search from the the backend; in case that all records is not yet loaded
   }
   const handleLoadRecords = async (page = 1, append = false) => {
-    //TODO: load the data from the database
-    //TODO: implement paginated data loading
     try {
       // Set loading state based on whether we're appending or initial load
       if (!append) {
@@ -35,9 +33,9 @@ function Records() {
         setIsLoadingMore(true);
       }
 
-      // Fetch data from API
+      // Fetch paginated data from API
       const response = await api.get(`plants?page=${page}`);
-      const newRecords = response.data || [];
+      const { data: newRecords = [], current_page, last_page } = response.data || {};
 
       // Update records state
       if (append) {
@@ -46,11 +44,14 @@ function Records() {
         setRecords(newRecords);
       }
 
-      // Check if there are more records to load
-      setHasMore(newRecords.length > 0);
+      // Determine if there are more pages to load
+      // Check if current_page exists and is less than last_page, or if we got records on this page
+      const hasMorePages = current_page && last_page ? current_page < last_page : newRecords.length > 0;
+      setHasMore(hasMorePages);
     } catch (error) {
       console.error('Error loading records:', error);
       toast.error('Error loading records');
+      setHasMore(false);
     } finally {
       // Clear loading states
       if (!append) {
