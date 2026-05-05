@@ -9,6 +9,7 @@ function Login() {
     password: '',
     rememberMe: false
   })
+  const [isLoading, setIsLoading] = useState(false)
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -84,14 +85,15 @@ function Login() {
             </div>
 
             {/* Submit Button */}
-            {/* TODO disable and show loading icon while logging in. */}
             <button
               type="submit"
+              disabled={isLoading}
               className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold 
                             hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 
-                            focus:ring-offset-2 transition duration-200 shadow-md"
+                            focus:ring-offset-2 transition duration-200 shadow-md disabled:opacity-60 
+                            disabled:cursor-not-allowed disabled:hover:bg-green-600"
             >
-              Sign In
+              {isLoading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
 
@@ -106,12 +108,13 @@ function Login() {
           </div>
 
           {/* Sign Up Link */}
-          {/* TODO disable sign up link while logging in */}
           <p className="mt-6 text-center text-sm text-gray-600">
             Don't have an account?{' '}
             <button
               onClick={() => navigate('/signup')}
-              className="cursor-pointer text-green-600 hover:text-green-700 font-semibold">
+              disabled={isLoading}
+              className="cursor-pointer text-green-600 hover:text-green-700 font-semibold 
+                disabled:opacity-60 disabled:cursor-not-allowed transition">
               Sign up for free
             </button>
           </p>
