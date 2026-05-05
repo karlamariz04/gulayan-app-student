@@ -62,7 +62,12 @@ function Records() {
   }
   const handleAddRecord = async (formData) => {
     try {
-      //TODO: make add new record functional
+      // Make API call to add new record
+      const response = await api.post('plants', formData);
+      
+      // Add new record to the state
+      setRecords(prev => [response.data, ...prev]);
+      
       toast.success("New record saved.");
     } catch (error) {
       console.error(error);
@@ -73,7 +78,14 @@ function Records() {
   }
   const handleUpdateRecord = async (data) => {
     try {
-      //TODO make update record functional
+      // Make API call to update record
+      const response = await api.put(`plants/${data.id}`, data);
+      
+      // Update record in state
+      setRecords(prev => prev.map(record => 
+        record.id === data.id ? response.data : record
+      ));
+      
       toast.success("Plant data updated.");
     } catch (error) {
       console.error(error);
