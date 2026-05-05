@@ -63,14 +63,19 @@ function Records() {
   }
   const handleAddRecord = async (formData) => {
     try {
-      //TODO: make add new record functional
+      const response = await api.post('plants', formData);
+      const newRecord = response.data;
+      
+      // Add the new record to the beginning of the records list
+      setRecords(prev => [newRecord, ...prev]);
+      
       toast.success("New record saved.");
     } catch (error) {
       console.error(error);
-      toast.error("Error encountered while saving record.");
+      toast.error(error?.message || "Error encountered while saving record.");
+    } finally {
+      setIsModalOpen(false);
     }
-
-    setIsModalOpen(false)
   }
   const handleUpdateRecord = async (data) => {
     try {
