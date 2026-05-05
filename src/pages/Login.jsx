@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api'
+import { toast } from 'sonner'
 
 function Login() {
   const navigate = useNavigate()
@@ -21,8 +22,38 @@ function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    //TODO make the login process functional
-
+    try {
+      setIsLoading(true)
+      
+      const response = await api.post('login', {
+        email: formData.email,
+        password: formData.password
+      })
+      
+      // Store the authentication token
+      const { token } = response.data
+      if (token) {
+        localStorage.setItem('token', token)
+        
+        // Optional: store remember me preference
+        if (formData.rememberMe) {
+          localStorage.setItem('rememberEmail', formData.email)
+        } else {
+          localStorage.removeItem('rememberEmail')
+        }
+        
+        toast.success('Login successful!')
+        navigate('/dashboard')
+      } else {
+        toast.error('Invalid response from server')
+      }
+    } catch (error) {
+      console.error('Login error:', error)
+      const errorMessage = error?.message || 'Login failed. Please try again.'
+      toast.error(errorMessage)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
