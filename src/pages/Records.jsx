@@ -7,7 +7,6 @@ import { api } from '../api';
 import { toast } from 'sonner';
 
 function Records() {
-  //TODO: add loading icon while ongoing ang loading ng records.
   const [records, setRecords] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -41,8 +40,6 @@ function Records() {
     }
   }
   const handleLoadRecords = async (page = 1, append = false) => {
-    //TODO: load the data from the database
-    //TODO: implement paginated data loading
     try {
       // Set loading state based on whether we're appending or initial load
       if (!append) {
@@ -51,9 +48,11 @@ function Records() {
         setIsLoadingMore(true);
       }
 
-      // Fetch data from API
-      const response = await api.get(`plants?page=${page}`);
-      const newRecords = response.data || [];
+      // Fetch paginated data from the database
+      const response = await api.get(`plants?page=${page}&limit=10`);
+      
+      // Handle response - could be array or object with data property
+      const newRecords = Array.isArray(response.data) ? response.data : response.data?.records || [];
 
       // Update records state
       if (append) {
@@ -62,11 +61,14 @@ function Records() {
         setRecords(newRecords);
       }
 
-      // Check if there are more records to load
-      setHasMore(newRecords.length > 0);
+      // Check if there are more records to load based on the number of records returned
+      // If less than limit, we've reached the end
+      const pageLimit = 10;
+      setHasMore(newRecords.length >= pageLimit);
     } catch (error) {
       console.error('Error loading records:', error);
       toast.error('Error loading records');
+      setHasMore(false);
     } finally {
       // Clear loading states
       if (!append) {
