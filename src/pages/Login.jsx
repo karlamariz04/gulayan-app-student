@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api'
+import { toast } from 'sonner'
+import { FaSeedling } from 'react-icons/fa'
 
 function Login() {
   const navigate = useNavigate()
@@ -9,6 +11,7 @@ function Login() {
     password: '',
     rememberMe: false
   })
+  const [isLoading, setIsLoading] = useState(false)
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -20,8 +23,31 @@ function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    //TODO make the login process functional
-
+    
+    try {
+      setIsLoading(true)
+      
+      // Make login API call
+      const response = await api.post('auth/login', {
+        email: formData.email,
+        password: formData.password
+      })
+      
+      // Store token in localStorage
+      if (response.data?.token) {
+        localStorage.setItem('token', response.data.token)
+        toast.success('Login successful!')
+        
+        // Navigate to dashboard after successful login
+        navigate('/dashboard')
+      }
+    } catch (error) {
+      console.error('Login error:', error)
+      const errorMessage = error.response?.data?.message || 'Invalid email or password'
+      toast.error(errorMessage)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -56,10 +82,11 @@ function Login() {
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
+                disabled={isLoading}
                 required
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 
                                 focus:ring-green-500 focus:border-transparent transition duration-200 
-                                outline-none"
+                                outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
                 placeholder="you@example.com"
               />
             </div>
@@ -75,23 +102,32 @@ function Login() {
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
+                disabled={isLoading}
                 required
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2
                                  focus:ring-green-500 focus:border-transparent transition duration-200 
-                                 outline-none"
+                                 outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
                 placeholder="••••••••"
               />
             </div>
 
             {/* Submit Button */}
-            {/* TODO disable and show loading icon while logging in. */}
             <button
               type="submit"
+              disabled={isLoading}
               className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold 
                             hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 
-                            focus:ring-offset-2 transition duration-200 shadow-md"
+                            focus:ring-offset-2 transition duration-200 shadow-md disabled:bg-green-400 
+                            disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              Sign In
+              {isLoading ? (
+                <>
+                  <FaSeedling className="animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                'Sign In'
+              )}
             </button>
           </form>
 
@@ -106,12 +142,13 @@ function Login() {
           </div>
 
           {/* Sign Up Link */}
-          {/* TODO disable sign up link while logging in */}
           <p className="mt-6 text-center text-sm text-gray-600">
             Don't have an account?{' '}
             <button
               onClick={() => navigate('/signup')}
-              className="cursor-pointer text-green-600 hover:text-green-700 font-semibold">
+              disabled={isLoading}
+              className="cursor-pointer text-green-600 hover:text-green-700 font-semibold disabled:text-gray-400 disabled:cursor-not-allowed"
+            >
               Sign up for free
             </button>
           </p>
